@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CROWNED — 여왕 육성 시뮬레이션</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700&family=Nanum+Myeongjo:wght@400;700;800&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --deep:#1A0A2E;--mid:#2D1B4E;--gold:#C9A84C;--bright:#FFD700;
+  --ivory:#F5ECD7;--red:#8B1A1A;--green:#2E6B4F;
+  --ft:'Cinzel',serif;--fd:'Cinzel Decorative',serif;--fb:'Nanum Myeongjo',serif;
+}
+html,body{width:100%;height:100%;background:#080412;display:flex;justify-content:center;align-items:center;font-family:var(--fb);}
+#game{width:390px;height:844px;position:relative;overflow:hidden;background:var(--deep);box-shadow:0 0 60px rgba(0,0,0,0.8);}
+.screen{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity 0.9s ease;}
+.screen.active{opacity:1;pointer-events:all;}
+.bg-img{position:absolute;inset:0;background-size:cover;background-position:center top;}
+.panel{position:absolute;bottom:0;left:0;right:0;background:rgba(18,6,38,0.91);border-top:1px solid var(--gold);padding:18px 20px 28px;}
+.pname{font-family:var(--ft);color:var(--gold);font-size:12px;letter-spacing:2px;margin-bottom:9px;}
+.ptext{color:var(--ivory);font-size:13.5px;line-height:1.75;margin-bottom:14px;}
+.btn{display:block;width:100%;padding:12px;background:linear-gradient(135deg,#6B4F10,var(--gold),#6B4F10);border:1px solid var(--gold);color:var(--deep);font-family:var(--ft);font-size:13px;letter-spacing:2px;cursor:pointer;text-align:center;transition:background 0.2s;}
+.btn:hover{background:linear-gradient(135deg,var(--gold),var(--bright),var(--gold));}
+.btn:disabled{opacity:0.4;cursor:not-allowed;}
+input[type=text],textarea{width:100%;background:rgba(45,27,78,0.75);border:1px solid var(--gold);border-bottom:none;color:var(--ivory);font-family:var(--fb);font-size:13px;padding:10px 12px;outline:none;display:block;}
+input[type=text]{margin-bottom:0;}
+textarea{height:80px;resize:none;margin-bottom:0;}
+.divider{height:1px;background:var(--gold);margin-bottom:12px;}
+
+/* TITLE */
+#s-title .sub{position:absolute;bottom:130px;left:0;right:0;text-align:center;color:var(--ivory);font-size:12px;letter-spacing:5px;opacity:0.82;}
+#s-title .start-btn{position:absolute;bottom:60px;left:60px;right:60px;width:auto;}
+
+/* ISOLA */
+#s-isola .char-full{position:absolute;inset:0;background-size:contain;background-position:center bottom;background-repeat:no-repeat;}
+
+/* CANDIDATE SELECT */
+#s-select{overflow-y:auto;-webkit-overflow-scrolling:touch;}
+#s-select .inner{background:var(--deep);min-height:844px;padding-bottom:24px;}
+.sel-header{text-align:center;padding:28px 20px 14px;font-family:var(--ft);color:var(--gold);font-size:12px;letter-spacing:3px;}
+.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 15px;}
+.card-wrap{aspect-ratio:3/4;perspective:900px;position:relative;}
+.card-wrap.clickable{cursor:pointer;}
+.card-inner{width:100%;height:100%;transform-style:preserve-3d;transition:transform 0.65s cubic-bezier(.4,0,.2,1);position:relative;}
+.card-wrap.flipped .card-inner{transform:rotateY(180deg);}
+.card-face,.card-back{position:absolute;inset:0;backface-visibility:hidden;border:1px solid var(--gold);overflow:hidden;}
+.card-back{background-size:cover;background-position:center;}
+.card-face{transform:rotateY(180deg);background:var(--mid);}
+.card-face img{width:100%;height:100%;object-fit:cover;display:block;}
+.card-locked{cursor:not-allowed;}
+.card-locked .card-back{filter:brightness(0.35);}
+.lock-over{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;}
+.lock-over img{width:36px;opacity:0.7;}
+.card-ring{outline:2px solid var(--bright);outline-offset:-1px;}
+.info-panel{margin:12px 15px 0;padding:14px 16px;background:rgba(45,27,78,0.6);border:1px solid var(--gold);}
+.info-name{font-family:var(--ft);color:var(--gold);font-size:14px;margin-bottom:5px;}
+.info-detail{color:var(--ivory);font-size:12px;line-height:1.65;opacity:0.88;}
+.sel-confirm{padding:10px 15px 0;}
+
+/* PERSONA */
+#s-persona .silhouette-wrap{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;pointer-events:none;}
+#s-persona #persona-img{height:70%;object-fit:contain;filter:brightness(0) invert(0.08);opacity:0.55;transition:filter 1s ease,opacity 1s ease,height 0.8s ease;}
+#s-persona #persona-img.revealed{filter:none;opacity:1;height:78%;}
+
+/* DIALOGUE */
+#s-dialogue .char-bg{position:absolute;inset:0;background-size:contain;background-position:center top;background-repeat:no-repeat;background-color:var(--deep);}
+.dlg-panel{position:absolute;bottom:0;left:0;right:0;background:rgba(15,5,30,0.93);border-top:1px solid var(--gold);padding:14px 16px 20px;}
+.turn-ctr{font-family:var(--ft);color:var(--gold);font-size:11px;letter-spacing:2px;text-align:right;margin-bottom:8px;}
+.dlg-history{max-height:155px;overflow-y:auto;margin-bottom:10px;padding-right:2px;}
+.dlg-history::-webkit-scrollbar{width:3px;}
+.dlg-history::-webkit-scrollbar-thumb{background:var(--gold);border-radius:2px;}
+.dlg-msg{margin-bottom:9px;font-size:13px;line-height:1.65;color:var(--ivory);}
+.dlg-msg .sp{font-family:var(--ft);color:var(--gold);font-size:10px;letter-spacing:1.5px;margin-bottom:2px;}
+.dlg-player{text-align:right;color:rgba(245,236,215,0.65);font-size:12.5px;}
+
+/* ANALYSIS */
+#s-analysis{background:var(--deep);display:flex;align-items:center;justify-content:center;}
+.analysis-wrap{text-align:center;padding:30px;}
+.an-label{font-family:var(--ft);color:var(--gold);font-size:13px;letter-spacing:3px;margin-bottom:18px;}
+.an-dots{font-size:28px;color:var(--gold);letter-spacing:6px;}
+#an-result{display:none;}
+.an-result-label{font-family:var(--ft);color:var(--gold);font-size:10px;letter-spacing:3px;margin-bottom:12px;}
+.an-title{font-family:var(--fd);color:var(--bright);font-size:21px;margin-bottom:22px;text-shadow:0 0 20px rgba(255,215,0,0.5);}
+.stat-dirs{display:flex;justify-content:center;gap:24px;margin-bottom:20px;}
+.sd-item{text-align:center;}
+.sd-stat{font-family:var(--ft);font-size:11px;color:var(--ivory);margin-bottom:4px;}
+.sd-val{font-family:var(--fd);font-size:17px;}
+.sd-val.up{color:var(--green);}
+.sd-val.dn{color:var(--red);}
+.an-msg{color:var(--ivory);font-size:13px;line-height:1.85;letter-spacing:1px;margin-bottom:22px;}
+
+/* HUB */
+#s-hub .hub-bg{position:absolute;inset:0;background-size:cover;background-position:center;}
+#s-hub .hub-dim{position:absolute;inset:0;background:rgba(8,3,18,0.62);}
+.hub-layer{position:absolute;inset:0;display:flex;flex-direction:column;padding:14px 14px 14px;}
+.hub-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.week-badge{font-family:var(--ft);color:var(--bright);font-size:14px;letter-spacing:2px;}
+.kb-row{display:flex;gap:10px;}
+.kb-item{text-align:center;}
+.kb-lbl{font-family:var(--ft);font-size:9px;color:var(--gold);letter-spacing:1px;}
+.kb-bar{width:52px;height:5px;background:rgba(255,255,255,0.15);border-radius:3px;margin-top:3px;}
+.kb-fill{height:100%;background:var(--gold);border-radius:3px;transition:width 0.6s;}
+.hub-char{flex:1;display:flex;align-items:center;justify-content:center;}
+.hub-char img{height:210px;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.5));}
+.hub-stat-card{background:rgba(18,6,38,0.88);border:1px solid var(--gold);padding:11px 13px;margin-bottom:11px;}
+.hsc-title{font-family:var(--ft);color:var(--gold);font-size:10px;letter-spacing:2px;text-align:center;margin-bottom:9px;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;}
+.si{display:flex;align-items:center;gap:5px;}
+.si-lbl{font-family:var(--ft);font-size:10px;color:var(--gold);width:42px;flex-shrink:0;}
+.si-bar{flex:1;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
+.si-fill{height:100%;background:linear-gradient(90deg,var(--green),#7fc47b);border-radius:3px;transition:width 0.7s;}
+.si-val{font-family:var(--fd);font-size:10px;color:var(--ivory);width:22px;text-align:right;}
+.hub-btns{display:flex;gap:6px;}
+.hub-btns .btn{flex:1;font-size:10px;padding:10px 4px;letter-spacing:1px;}
+
+/* RIVAL POPUP */
+#rival-popup{display:none;position:absolute;inset:0;background:rgba(8,3,18,0.95);z-index:200;flex-direction:column;padding:18px 16px;}
+#rival-popup.show{display:flex;}
+.rp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.rp-title{font-family:var(--ft);color:var(--gold);font-size:13px;letter-spacing:2px;}
+.rp-close{background:none;border:1px solid var(--gold);color:var(--gold);font-family:var(--ft);font-size:11px;padding:5px 12px;cursor:pointer;letter-spacing:1px;}
+.rv-tabs{display:flex;gap:8px;margin-bottom:14px;}
+.rv-tab{flex:1;padding:8px;font-family:var(--ft);font-size:11px;letter-spacing:1px;border:1px solid var(--gold);color:var(--gold);cursor:pointer;background:none;transition:all 0.2s;}
+.rv-tab.on{background:var(--gold);color:var(--deep);}
+.rv-body{flex:1;display:flex;flex-direction:column;align-items:center;overflow-y:auto;}
+.rv-card-img{width:150px;height:200px;object-fit:cover;border:1px solid var(--gold);margin-bottom:14px;}
+.rv-cname{font-family:var(--ft);color:var(--bright);font-size:17px;margin-bottom:3px;}
+.rv-manager{color:var(--ivory);font-size:11px;opacity:0.65;margin-bottom:14px;}
+.rv-stats{width:100%;}
+.rv-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.rv-lbl{font-family:var(--ft);font-size:10px;color:var(--gold);width:42px;}
+.rv-bar{flex:1;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
+.rv-fill{height:100%;background:linear-gradient(90deg,var(--red),#cc4444);border-radius:3px;}
+.rv-val{font-size:10px;color:var(--ivory);width:22px;text-align:right;}
+
+/* SCHEDULE */
+#s-schedule{background:var(--deep);display:flex;flex-direction:column;padding:0;}
+.sch-header{padding:24px 20px 12px;text-align:center;font-family:var(--ft);color:var(--gold);font-size:12px;letter-spacing:3px;}
+.sch-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 15px;flex:1;}
+.sch-card{border:1px solid rgba(201,168,76,0.35);padding:16px 10px;text-align:center;position:relative;}
+.sch-card.can{border-color:var(--gold);cursor:pointer;transition:all 0.2s;}
+.sch-card.can:hover{background:rgba(201,168,76,0.1);}
+.sch-card.can.picked{outline:2px solid var(--bright);outline-offset:-1px;background:rgba(201,168,76,0.08);}
+.sch-card.locked{opacity:0.35;}
+.sch-lock{margin-bottom:6px;}
+.sch-lock img{width:28px;opacity:0.6;}
+.sch-name{font-family:var(--ft);font-size:11px;color:var(--gold);letter-spacing:1px;margin-bottom:5px;}
+.sch-effect{font-size:10px;color:var(--ivory);opacity:0.65;}
+.sch-footer{padding:12px 15px 24px;}
+
+/* SCHEDULE RESULT */
+#s-sched-result .sr-bg{position:absolute;inset:0;background-size:contain;background-position:center;background-repeat:no-repeat;background-color:var(--deep);}
+.stat-chg{margin-bottom:12px;}
+.sc-item{display:inline-block;font-family:var(--fd);font-size:14px;margin-right:14px;}
+.sc-up{color:var(--green);}
+.sc-dn{color:var(--red);}
+
+/* EVENT */
+#s-event .ev-bg{position:absolute;inset:0;background-size:cover;background-position:center top;}
+#s-event .ev-dim{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 25%,rgba(8,3,18,0.72) 55%,rgba(8,3,18,0.85) 75%);}
+.ev-panel{position:absolute;bottom:0;left:0;right:0;background:rgba(15,5,30,0.94);border-top:1px solid var(--gold);padding:18px 20px 24px;}
+.ev-badge{font-family:var(--ft);font-size:10px;letter-spacing:2px;color:var(--red);margin-bottom:6px;}
+.ev-title{font-family:var(--ft);color:var(--gold);font-size:15px;margin-bottom:9px;}
+.ev-desc{color:var(--ivory);font-size:13px;line-height:1.7;margin-bottom:14px;}
+.ev-choices{display:flex;flex-direction:column;gap:8px;}
+.ev-btn{padding:10px 14px;border:1px solid var(--gold);color:var(--ivory);font-family:var(--fb);font-size:13px;cursor:pointer;background:none;text-align:left;transition:background 0.2s;}
+.ev-btn:hover{background:rgba(201,168,76,0.12);}
+.ev-result{display:none;}
+.ev-rtext{color:var(--ivory);font-size:13px;line-height:1.7;margin-bottom:14px;}
+
+/* RESULT */
+#s-result .res-char{position:absolute;inset:0;background-size:contain;background-position:center top;background-repeat:no-repeat;background-color:var(--deep);}
+#s-result .res-dim{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 22%,rgba(8,3,18,0.82) 48%);}
+.res-panel{position:absolute;bottom:0;left:0;right:0;background:rgba(15,5,30,0.95);border-top:2px solid var(--gold);padding:18px 20px 28px;max-height:62%;overflow-y:auto;}
+.res-panel::-webkit-scrollbar{width:3px;}
+.res-panel::-webkit-scrollbar-thumb{background:var(--gold);}
+.res-crown{text-align:center;font-family:var(--ft);color:var(--gold);font-size:10px;letter-spacing:3px;margin-bottom:8px;}
+.res-title{font-family:var(--fd);color:var(--bright);font-size:19px;text-align:center;margin-bottom:14px;text-shadow:0 0 16px rgba(255,215,0,0.5);}
+.rank-section{margin-bottom:14px;}
+.rank-lbl{font-family:var(--ft);color:var(--gold);font-size:10px;letter-spacing:2px;margin-bottom:8px;}
+.rank-item{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.rank-no{font-family:var(--fd);color:var(--gold);font-size:15px;width:20px;}
+.rank-name{color:var(--ivory);font-size:13px;}
+.rank-name.you{color:var(--bright);}
+.cta-wrap{text-align:center;}
+.cta-msg{color:var(--ivory);font-size:12px;letter-spacing:1px;margin-bottom:12px;opacity:0.75;}
+</style>
+</head>
+<body>
+<div id="game">
+
+<!-- TITLE -->
+<div id="s-title" class="screen">
+  <div class="bg-img" style="background-image:url('https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/bg_title.png')"></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 60%,rgba(10,4,20,0.7) 85%)"></div>
+  <div class="sub">여왕 육성 시뮬레이션</div>
+  <button class="btn start-btn" onclick="go('s-isola')">시작하기</button>
+</div>
+
+<!-- ISOLA OPENING -->
+<div id="s-isola" class="screen">
+  <div style="position:absolute;inset:0;background:#1A0A2E;"></div>
+  <div style="position:absolute;top:0;left:0;right:0;height:65%;background-image:url('https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/full_isola.png');background-size:contain;background-position:center top;background-repeat:no-repeat;"></div>
+  <div style="position:absolute;bottom:0;left:0;right:0;top:62%;background:#1A0A2E;border-top:1px solid var(--gold);padding:18px 20px 28px;">
+    <div class="pname">[ 이솔라 여왕 ]</div>
+    <div class="ptext">집정관이여, 나의 이야기를 들어주시오.<br>나 이솔라는 후계자 없이 노령이 되었소. 왕국 엘도리아의 전통에 따라 차기 여왕 후보를 선발하고자 하오.<br>그대는 여왕 후보 한 명을 선택하여 300일간 육성하게 될 것이오. 즉위 심사에서 최고의 여왕을 배출한 집정관이 왕국의 수석 집정관 자리를 얻을 것이오.</div>
+    <button class="btn" onclick="go('s-name')">다음</button>
+  </div>
+</div>
+
+<!-- NAME INPUT -->
+<div id="s-name" class="screen">
+  <div class="bg-img" style="background-image:url('https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/bg_office.png')"></div>
+  <div style="position:absolute;inset:0;background:rgba(10,4,20,0.35)"></div>
+  <div class="panel">
+    <div class="pname">[ 이솔라 여왕 ]</div>
+    <div class="ptext">집정관의 이름을 알려주십시오.</div>
+    <input type="text" id="name-inp" placeholder="이름을 입력해주십시오" maxlength="10">
+    <div class="divider"></div>
+    <button class="btn" onclick="confirmName()">확인</button>
+  </div>
+</div>
+
+<!-- CANDIDATE SELECT -->
+<div id="s-select" class="screen">
+  <div class="inner">
+    <div class="sel-header">후보를 선택해주십시오</div>
+    <div class="card-grid">
+      <div class="card-wrap clickable" id="cw-rieona" onclick="flipCard('rieona')">
+        <div class="card-inner">
+          <div class="card-back" style="background-image:url('https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/ui_card_back.png')"></div>
+          <div class="card-face"><img src="https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/card_rieona.png" alt="리에나"></div>
+        </div>
+      </div>
+      <div class="card-wrap clickable" id="cw-verona" onclick="flipCard('verona')">
+        <div class="card-inner">
+          <div class="card-back" style="background-image:url('https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/ui_card_back.png')"></div>
+          <div class="card-face"><img src="https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/card_verona.png" alt="베로나"></div>
+        </div>
+      </div>
+      <div class="card-wrap clickable" id="cw-erion" onclick="flipCard('erion')">
+        <div class="card-inner">
+          <div class="card-back" style="background-image:url('https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/ui_card_back.png')"></div>
+          <div class="card-face"><img src="https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/card_erion.png" alt="에리온"></div>
+        </div>
+      </div>
+      <div class="card-wrap card-locked" onclick="showLockMsg()">
+        <div class="card-inner"><div class="card-back" style="background-image:url('https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/ui_card_back.png')"></div></div>
+        <div class="lock-over"><img src="https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/ui_lock.png" alt="잠금"></div>
+      </div>
+      <div class="card-wrap card-locked" onclick="showLockMsg()">
+        <div class="card-inner"><div class="card-back" style="background-image:url('https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/ui_card_back.png')"></div></div>
+        <div class="lock-over"><img src="https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/ui_lock.png" alt="잠금"></div>
+      </div>
+      <div class="card-wrap card-locked" onclick="showLockMsg()">
+        <div class="card-inner"><div class="card-back" style="background-image:url('https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/ui_card_back.png')"></div></div>
+        <div class="lock-over"><img src="https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/ui_lock.png" alt="잠금"></div>
+      </div>
+    </div>
+    <!-- 후보 상세 정보 패널 -->
+    <div id="sel-detail" style="display:none;margin:10px 15px 0;">
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <img id="sel-full-img" src="" alt="" style="width:90px;height:130px;object-fit:cover;border:1px solid var(--gold);flex-shrink:0;">
+        <div style="flex:1;">
+          <div class="info-name" id="sel-d-name"></div>
+          <div class="info-detail" id="sel-d-origin" style="margin-bottom:8px;"></div>
+          <div id="sel-d-stats"></div>
+        </div>
+      </div>
+    </div>
+    <div id="sel-info" style="margin:10px 15px 0;padding:12px 14px;border:1px solid rgba(201,168,76,0.3);">
+      <div class="info-detail" style="opacity:0.45">카드를 선택하시면 후보의 정보를 확인하실 수 있습니다.</div>
+    </div>
+    <div class="sel-confirm" style="padding:10px 15px 24px;">
+      <button class="btn" id="sel-confirm-btn" onclick="confirmCandidate()" style="display:none;">이 후보를 선택하겠습니다</button>
+    </div>
+    <!-- 잠긴 카드 안내 토스트 -->
+    <div id="card-lock-toast" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:#1A0A2E;border:1px solid var(--gold);color:var(--ivory);font-family:var(--fb);font-size:12px;padding:10px 18px;white-space:nowrap;z-index:100;">1회차 엔딩 이후 해금됩니다.</div>
+  </div>
+</div>
+
+<!-- PERSONA -->
+<div id="s-persona" class="screen">
+  <div class="bg-img" style="background-image:url('https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/bg_office.png')"></div>
+  <div style="position:absolute;inset:0;background:rgba(10,4,20,0.4)"></div>
+  <div class="panel">
+    <div class="pname">[ 집정관 집무실 ]</div>
+    <div class="ptext">후보의 성격과 말투를 설명해주십시오.<br><span style="font-size:11px;opacity:0.6">예: 냉정하지만 속은 여린 타입, 존댓말 사용, 칭찬에 약함</span></div>
+    <textarea id="persona-inp" placeholder="자유롭게 서술해주십시오"></textarea>
+    <div class="divider"></div>
+    <button class="btn" onclick="confirmPersona()">확인</button>
+  </div>
+</div>
+
+<!-- DIALOGUE -->
+<div id="s-dialogue" class="screen">
+  <div class="char-bg" id="dlg-char-bg"></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(10,4,20,0.6) 70%)"></div>
+  <div class="dlg-panel">
+    <div class="turn-ctr" id="turn-ctr">대화 1 / 3</div>
+    <div class="dlg-history" id="dlg-hist"></div>
+    <div id="dlg-input-wrap">
+      <input type="text" id="dlg-inp" placeholder="집정관님의 말씀을 입력해주십시오" maxlength="100">
+      <div class="divider"></div>
+      <button class="btn" onclick="submitDlg()">전달하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ANALYSIS -->
+<div id="s-analysis" class="screen">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at center,#2D1B4E 0%,var(--deep) 70%)"></div>
+  <div class="analysis-wrap" style="position:relative;z-index:1;">
+    <div id="an-loading">
+      <div class="an-label">분석 중</div>
+      <div class="an-dots" id="an-dots">...</div>
+    </div>
+    <div id="an-result">
+      <div class="an-result-label">여왕 후보 분석 완료</div>
+      <div class="an-title" id="an-title-txt"></div>
+      <div class="stat-dirs" id="an-stat-dirs"></div>
+      <div class="an-msg">집정관님의 대화가<br>여왕의 운명을 결정하였습니다.</div>
+      <button class="btn" onclick="goHub()">육성을 시작하겠습니다</button>
+    </div>
+  </div>
+</div>
+
+<!-- HUB -->
+<div id="s-hub" class="screen" style="background:#1A0A2E;display:flex;flex-direction:column;padding:14px;">
+  <div class="hub-top">
+    <div class="week-badge" id="hub-week">1주차</div>
+    <div class="kb-row">
+      <div class="kb-item"><div class="kb-lbl">치안</div><div class="kb-bar"><div class="kb-fill" id="kb-ord" style="width:70%"></div></div></div>
+      <div class="kb-item"><div class="kb-lbl">경제</div><div class="kb-bar"><div class="kb-fill" id="kb-eco" style="width:60%"></div></div></div>
+      <div class="kb-item"><div class="kb-lbl">외교</div><div class="kb-bar"><div class="kb-fill" id="kb-dip" style="width:65%"></div></div></div>
+    </div>
+  </div>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+    <img id="hub-char-img" src="" alt="" style="max-height:280px;object-fit:contain;filter:drop-shadow(0 4px 20px rgba(201,168,76,0.25));">
+  </div>
+  <div style="border-top:1px solid var(--gold);padding-top:12px;margin-bottom:10px;">
+    <div class="hsc-title" id="hub-cand-label"></div>
+    <div class="stats-grid" id="hub-stats-grid"></div>
+  </div>
+  <div class="hub-btns">
+    <button class="btn" onclick="openSchedule()">스케줄 배정</button>
+    <button class="btn" onclick="openCare()">대화하기</button>
+    <button class="btn" onclick="showRivalPop()">라이벌 현황</button>
+  </div>
+  <!-- Rival Popup -->
+  <div id="rival-popup">
+    <div class="rp-head">
+      <div class="rp-title">라이벌 현황</div>
+      <button class="rp-close" onclick="closeRivalPop()">닫기</button>
+    </div>
+    <div class="rv-tabs">
+      <button class="rv-tab on" id="rv-t0" onclick="switchRv(0)">후보1</button>
+      <button class="rv-tab" id="rv-t1" onclick="switchRv(1)">후보2</button>
+    </div>
+    <div class="rv-body" id="rv-body"></div>
+  </div>
+</div>
+
+<!-- SCHEDULE SELECT -->
+<div id="s-schedule" class="screen">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at top,#2D1B4E,var(--deep) 70%)"></div>
+  <div style="position:relative;z-index:1;display:flex;flex-direction:column;height:100%;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 15px 8px;">
+      <div class="sch-header" style="padding:0;font-family:var(--ft);color:var(--gold);font-size:12px;letter-spacing:3px;">스케줄을 배정하십시오</div>
+      <button onclick="go('s-hub')" style="background:none;border:1px solid var(--gold);color:var(--gold);font-family:var(--ft);font-size:10px;padding:5px 12px;cursor:pointer;letter-spacing:1px;">돌아가기</button>
+    </div>
+    <div class="sch-grid" id="sch-grid"></div>
+    <div class="sch-footer">
+      <button class="btn" id="sch-confirm" onclick="confirmSched()" style="display:none;">배정 확정</button>
+    </div>
+  </div>
+  <!-- 잠긴 스케줄 안내 토스트 -->
+  <div id="lock-toast" style="display:none;position:absolute;bottom:100px;left:50%;transform:translateX(-50%);background:#1A0A2E;border:1px solid var(--gold);color:var(--ivory);font-family:var(--fb);font-size:12px;padding:10px 18px;white-space:nowrap;z-index:10;">정식 버전에서 해금됩니다.</div>
+</div>
+
+<!-- SCHEDULE RESULT -->
+<div id="s-sched-result" class="screen" style="background:#1A0A2E;display:flex;flex-direction:column;">
+  <div class="pname" id="sr-type" style="padding:16px 20px 10px;border-bottom:1px solid var(--gold);flex-shrink:0;"></div>
+  <div id="sr-bg" style="flex:1;background-size:contain;background-position:center top;background-repeat:no-repeat;min-height:0;"></div>
+  <div style="border-top:1px solid var(--gold);background:#1A0A2E;padding:18px 20px 24px;flex-shrink:0;">
+    <div class="ptext" id="sr-text" style="margin-bottom:10px;"></div>
+    <div class="stat-chg" id="sr-chg" style="margin-bottom:14px;"></div>
+    <button class="btn" onclick="afterSched()">확인</button>
+  </div>
+</div>
+
+<!-- EVENT -->
+<div id="s-event" class="screen" style="background:#1A0A2E;display:flex;flex-direction:column;">
+  <div id="ev-bg" style="flex:1;background-size:contain;background-position:center top;background-repeat:no-repeat;min-height:0;"></div>
+  <div style="border-top:1px solid var(--gold);background:#1A0A2E;padding:18px 20px 24px;flex-shrink:0;">
+    <div class="ev-badge" id="ev-badge"></div>
+    <div class="ev-title" id="ev-title"></div>
+    <div class="ev-desc" id="ev-desc"></div>
+    <div class="ev-choices" id="ev-choices"></div>
+    <div class="ev-result" id="ev-result">
+      <div class="ev-rtext" id="ev-rtext"></div>
+      <button class="btn" onclick="afterEvent()">계속</button>
+    </div>
+  </div>
+</div>
+
+<!-- CARE DIALOGUE -->
+<div id="s-care" class="screen">
+  <div class="char-bg" id="care-char-bg"></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(10,4,20,0.6) 70%)"></div>
+  <div class="dlg-panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div class="pname" id="care-name" style="margin:0;"></div>
+      <button onclick="go('s-hub')" style="background:none;border:1px solid var(--gold);color:var(--gold);font-family:var(--ft);font-size:10px;padding:4px 10px;cursor:pointer;letter-spacing:1px;">돌아가기</button>
+    </div>
+    <div class="dlg-history" id="care-hist"></div>
+    <div id="care-input-wrap">
+      <input type="text" id="care-inp" placeholder="후보에게 말씀을 전해주십시오" maxlength="100">
+      <div class="divider"></div>
+      <button class="btn" onclick="submitCare()">전달하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="s-result" class="screen">
+  <div class="res-char" id="res-char"></div>
+  <div class="res-dim"></div>
+  <div class="res-panel">
+    <div class="res-crown">여왕 후보 육성 3주차 결과</div>
+    <div class="res-title" id="res-title"></div>
+    <canvas id="radar" width="200" height="200" style="display:block;margin:0 auto 14px;"></canvas>
+    <div class="rank-section">
+      <div class="rank-lbl">즉위 심사 예상 순위</div>
+      <div id="rank-list"></div>
+    </div>
+    <div class="cta-wrap">
+      <div class="cta-msg">정식 버전에서 여왕의 즉위를 완성하십시오.</div>
+      <button class="btn">정식 버전 알림 신청</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- #game -->
+<script>
+const A='https://raw.githubusercontent.com/muffinbiter/crowned/main/assets/';
+const DATA={
+  rieona:{name:'리에나',origin:'왕족 방계',trait:'지성과 카리스마가 뛰어나나 체력이 부족합니다.',
+    card:'card_rieona.png',full:'full_rieona.png',sd:'sd_rieona.png',
+    sched:'schedule_rieona_martial.png',schedType:'무술 훈련',schedPlace:'훈련장',
+    schedEff:{무력:8,체력:-3},
+    schedDesc:'은(는) 오늘도 훈련장에서 목검을 어색하게 들고 무술 훈련을 하였습니다.',
+    stats:{지성:70,무력:30,외모:60,카리스마:65,멘탈:55,체력:40},
+    presets:{combat:{title:'강인한 수호의 여왕',b:{무력:15,체력:10,지성:-5}},people:{title:'빛나는 카리스마의 여왕',b:{카리스마:15,외모:8,무력:-5}},def:{title:'냉철한 지략의 여왕',b:{지성:15,카리스마:8,체력:-5}}},
+    open:'집정관님, 처음 뵙겠습니다. 저는 리에나입니다. 앞으로 잘 부탁드립니다.',
+    rep:['...그렇군요. 집정관님의 말씀이 마음에 남습니다.','제가 아직 부족한 점이 많지만, 열심히 하겠습니다.'],
+    fin:'이제 집정관님을 알 것 같습니다. 앞으로도 잘 이끌어 주십시오.',
+    events:{
+      1:{type:'normal',title:'귀족의 반발',desc:'일부 귀족들이 리에나 후보의 즉위에 반발하며 소란을 일으키고 있습니다.',rival:null,
+        choices:[{text:'강경 진압한다',eff:{카리스마:5,멘탈:-5},res:'귀족들을 강경하게 진압하였습니다. 카리스마가 상승하였으나 멘탈에 부담이 생겼습니다.'},{text:'회유 협상한다',eff:{지성:5,외모:3},res:'현명한 협상으로 귀족들을 설득하였습니다. 지성과 품위가 향상되었습니다.'}]},
+      2:{type:'rival',rival:'sepia',title:'세피아 집정관의 견제',desc:'세피아 집정관이 왕립 도서관을 독점하여 리에나의 학문 수련을 방해하고 있습니다.',
+        choices:[{text:'맞대응한다',eff:{멘탈:-5},res:'세피아의 견제에 맞서 도서관 접근권을 확보하였습니다. 다소 피로가 쌓였습니다.'},{text:'무시하고 진행한다',eff:{지성:-5},res:'도서관 독점을 무시하고 진행하였으나 학문 수련 효율이 저하되었습니다.'}]},
+      3:{type:'rival',rival:'ruan',title:'루안 집정관의 견제',desc:'루안 집정관이 대규모 민심 행사를 개최하여 리에나의 카리스마 성장을 방해하고 있습니다.',
+        choices:[{text:'맞대응한다',eff:{체력:-5},res:'루안의 민심 행사에 맞서 리에나만의 행사를 개최하였습니다. 체력이 소모되었습니다.'},{text:'무시하고 진행한다',eff:{카리스마:-5},res:'루안의 행사를 무시하였습니다. 카리스마 성장이 다소 저해되었습니다.'}]}
+    }
+  },
+  verona:{name:'베로나',origin:'평민 출신',trait:'강인한 체력과 멘탈을 지녔으나 지성이 부족합니다.',
+    card:'card_verona.png',full:'full_verona.png',sd:'sd_verona.png',
+    sched:'schedule_verona_study.png',schedType:'학문 수련',schedPlace:'왕립 도서관',
+    schedEff:{지성:8,체력:-3},
+    schedDesc:'은(는) 오늘도 왕립 도서관 책상에서 멍하니 책을 보며 학문 수련을 하였습니다.',
+    stats:{지성:35,무력:65,외모:50,카리스마:55,멘탈:70,체력:70},
+    presets:{combat:{title:'강철 의지의 여왕',b:{무력:15,체력:12,지성:-5}},people:{title:'민심의 어머니',b:{카리스마:15,멘탈:8,외모:-5}},def:{title:'따뜻한 통합의 여왕',b:{멘탈:15,카리스마:8,무력:-5}}},
+    open:'안녕하세요, 집정관님. 저는 베로나입니다. 솔직히 말씀드리면, 여왕이 될 자신이 없습니다. 하지만 최선을 다하겠습니다.',
+    rep:['하하, 그렇게 생각하셨군요. 저도 비슷하게 느꼈어요.','감사합니다, 집정관님. 더 열심히 하겠습니다.'],
+    fin:'이제 집정관님을 조금 알 것 같습니다. 잘 부탁드립니다.',
+    events:{
+      1:{type:'normal',rival:null,title:'훈련 중 부상',desc:'베로나가 훈련 도중 부상을 입었습니다. 계속 훈련할지, 충분히 쉬게 할지 결정해야 합니다.',
+        choices:[{text:'훈련을 계속한다',eff:{무력:8,체력:-10},res:'부상을 감수하고 훈련을 강행하였습니다. 무력이 크게 상승하였으나 체력이 많이 소모되었습니다.'},{text:'충분히 휴식한다',eff:{체력:10,멘탈:5},res:'충분한 휴식으로 몸을 회복하였습니다. 체력과 멘탈이 회복되었습니다.'}]},
+      2:{type:'rival',rival:'ruan',title:'루안 집정관의 견제',desc:'루안 집정관이 민심 순방 행사를 개최하여 베로나의 카리스마 성장을 방해하고 있습니다.',
+        choices:[{text:'맞대응한다',eff:{체력:-5},res:'루안의 행사에 맞서 베로나만의 민심 행사를 열었습니다. 체력이 소모되었습니다.'},{text:'무시하고 진행한다',eff:{카리스마:-5},res:'루안의 견제를 무시하였습니다. 카리스마 성장이 저해되었습니다.'}]},
+      3:{type:'rival',rival:'sepia',title:'세피아 집정관의 견제',desc:'세피아 집정관이 외교 채널을 차단하여 베로나의 품위 교육 효율을 떨어뜨리고 있습니다.',
+        choices:[{text:'맞대응한다',eff:{지성:-3},res:'외교 채널을 직접 뚫어 품위 교육을 이어갔습니다. 다소 에너지가 소모되었습니다.'},{text:'무시하고 진행한다',eff:{외모:-5},res:'채널 차단을 무시하였습니다. 품위 교육 효율이 저하되었습니다.'}]}
+    }
+  },
+  erion:{name:'에리온',origin:'유랑민 출신',trait:'전 스탯이 고른 수준이며 숨겨진 잠재력을 지니고 있습니다.',
+    card:'card_erion.png',full:'full_erion.png',sd:'sd_erion.png',
+    sched:'schedule_erion_etiquette.png',schedType:'품위 교육',schedPlace:'왕실 예법원',
+    schedEff:{외모:8,멘탈:3},
+    schedDesc:'은(는) 오늘도 왕실 예법원에서 드레스를 입고 걷는 연습을 하였습니다.',
+    stats:{지성:50,무력:50,외모:50,카리스마:50,멘탈:50,체력:50},
+    presets:{combat:{title:'바람같은 자유의 여왕',b:{무력:10,체력:10,카리스마:8}},people:{title:'운명을 가른 여왕',b:{지성:8,카리스마:8,외모:8}},def:{title:'숨겨진 빛의 여왕',b:{지성:10,카리스마:10,외모:8}}},
+    open:'...집정관님이시군요. 저는 에리온입니다. 여러 곳을 떠돌며 살았지만, 이곳에서 새로운 시작을 해보려 합니다.',
+    rep:['...흥미롭네요. 계속 말씀해 주십시오.','그런 시각도 있군요. 저는 생각해보지 못했습니다.'],
+    fin:'이제 집정관님을 조금은 알 것 같습니다. 앞으로 잘 부탁드립니다.',
+    events:{
+      1:{type:'normal',rival:null,title:'타국의 스카우트 제의',desc:'타국에서 에리온에게 파격적인 조건으로 스카우트를 제의해왔습니다. 선택이 필요합니다.',
+        choices:[{text:'단호히 거절한다',eff:{카리스마:5,멘탈:5},res:'스카우트를 단호히 거절하였습니다. 에리온의 결의가 더욱 굳건해졌습니다.'},{text:'조건부로 협상한다',eff:{지성:5,외모:3},res:'협상을 통해 유리한 조건을 이끌어냈습니다. 외교적 경험이 쌓였습니다.'}]},
+      2:{type:'rival',rival:'sepia',title:'세피아 집정관의 견제',desc:'세피아 집정관이 왕립 도서관을 독점하여 에리온의 학문 수련을 방해하고 있습니다.',
+        choices:[{text:'맞대응한다',eff:{멘탈:-5},res:'세피아의 견제에 맞서 도서관 접근권을 확보하였습니다.'},{text:'무시하고 진행한다',eff:{지성:-5},res:'도서관 독점을 무시하였습니다. 학문 수련 효율이 저하되었습니다.'}]},
+      3:{type:'rival',rival:'ruan',title:'루안 집정관의 견제',desc:'루안 집정관이 민심 행사를 개최하여 에리온의 이미지에 타격을 입히려 합니다.',
+        choices:[{text:'맞대응한다',eff:{체력:-5},res:'루안의 행사에 맞서 에리온만의 행사를 열었습니다.'},{text:'무시하고 진행한다',eff:{카리스마:-5},res:'루안의 견제를 무시하였습니다. 이미지에 다소 타격이 있었습니다.'}]}
+    }
+  }
+};
+
+const SCHEDS=[
+  {name:'학문 수련',eff:'지성 +, 체력 -',key:'academic'},
+  {name:'무술 훈련',eff:'무력 +, 체력 -',key:'martial'},
+  {name:'품위 교육',eff:'외모 +, 멘탈 +',key:'etiquette'},
+  {name:'대중 연설',eff:'카리스마 +, 멘탈 -',key:'speech'},
+  {name:'체력 단련',eff:'체력 ++, 멘탈 +',key:'fitness'},
+  {name:'휴식',eff:'멘탈 ++, 체력 +',key:'rest'},
+];
+
+const ACTIVE_KEY={rieona:'martial',verona:'academic',erion:'etiquette'};
+const STAT_KEYS=['지성','무력','외모','카리스마','멘탈','체력'];
+
+const G={
+  playerName:'',candidate:null,preset:null,title:'',
+  stats:{},initStats:{},week:1,
+  dlgTurn:0,dlgTexts:[],
+  rvTab:0,rival1:null,rival2:null,
+  rv1Stats:{},rv2Stats:{},
+  kingdom:{ord:70,eco:60,dip:65}
+};
+
+// Screen management
+let cur='s-title';
+document.getElementById('s-title').classList.add('active');
+
+function go(id){
+  const c=document.getElementById(cur);
+  const n=document.getElementById(id);
+  c.classList.remove('active');
+  setTimeout(()=>{n.classList.add('active');cur=id;},520);
+}
+
+// Name confirm
+function confirmName(){
+  const v=document.getElementById('name-inp').value.trim();
+  if(!v){alert('이름을 입력해주십시오.');return;}
+  G.playerName=v;
+  go('s-select');
+}
+document.getElementById('name-inp').addEventListener('keydown',e=>{if(e.key==='Enter')confirmName();});
+
+// Card flip
+let pickedCard=null;
+function showLockMsg(){
+  const t=document.getElementById('card-lock-toast');
+  t.style.display='block';
+  setTimeout(()=>t.style.display='none',2000);
+}
+function showLockSched(){
+  const t=document.getElementById('lock-toast');
+  t.style.display='block';
+  setTimeout(()=>t.style.display='none',2000);
+}
+function flipCard(id){
+  ['rieona','verona','erion'].forEach(c=>{
+    document.getElementById('cw-'+c).classList.remove('card-ring');
+  });
+  const cw=document.getElementById('cw-'+id);
+  cw.classList.add('flipped','card-ring');
+  pickedCard=id;
+  const d=DATA[id];
+  document.getElementById('sel-info').style.display='none';
+  document.getElementById('sel-detail').style.display='block';
+  document.getElementById('sel-full-img').src=A+d.full;
+  document.getElementById('sel-d-name').textContent=d.name;
+  document.getElementById('sel-d-origin').textContent=`출신: ${d.origin} — ${d.trait}`;
+  const statKeys=['지성','무력','외모','카리스마','멘탈','체력'];
+  document.getElementById('sel-d-stats').innerHTML=statKeys.map(k=>`
+    <div class="si" style="margin-bottom:4px;">
+      <div class="si-lbl">${k}</div>
+      <div class="si-bar"><div class="si-fill" style="width:${d.stats[k]}%"></div></div>
+      <div class="si-val">${d.stats[k]}</div>
+    </div>`).join('');
+  document.getElementById('sel-confirm-btn').style.display='block';
+}
+
+function confirmCandidate(){
+  if(!pickedCard)return;
+  G.candidate=pickedCard;
+  const d=DATA[pickedCard];
+  G.stats={...d.stats};
+  G.initStats={...d.stats};
+  const all=['rieona','verona','erion'];
+  const rivals=all.filter(c=>c!==pickedCard);
+  G.rival1=rivals[0];G.rival2=rivals[1];
+  G.rv1Stats={...DATA[rivals[0]].stats};
+  G.rv2Stats={...DATA[rivals[1]].stats};
+  document.getElementById('persona-img').src=A+d.full;
+  document.getElementById('persona-img').classList.remove('revealed');
+  go('s-persona');
+}
+
+// Persona
+function confirmPersona(){
+  const v=document.getElementById('persona-inp').value.trim();
+  G.personality=v;
+  setupDlg();
+  go('s-dialogue');
+}
+
+// Dialogue
+function setupDlg(){
+  const d=DATA[G.candidate];
+  G.dlgTurn=0;G.dlgTexts=[];
+  document.getElementById('dlg-hist').innerHTML='';
+  document.getElementById('dlg-char-bg').style.backgroundImage=`url('${A+d.full}')`;
+  document.getElementById('dlg-input-wrap').style.display='block';
+  document.getElementById('turn-ctr').textContent='대화 1 / 3';
+  addCharMsg(d.open);
+}
+
+function addCharMsg(txt){
+  const d=DATA[G.candidate];
+  const h=document.getElementById('dlg-hist');
+  h.innerHTML+=`<div class="dlg-msg"><div class="sp">[ ${d.name} ]</div><div>${txt}</div></div>`;
+  h.scrollTop=9999;
+}
+
+function addPlayerMsg(txt){
+  const h=document.getElementById('dlg-hist');
+  h.innerHTML+=`<div class="dlg-msg dlg-player">${txt}</div>`;
+  h.scrollTop=9999;
+}
+
+function submitDlg(){
+  const inp=document.getElementById('dlg-inp');
+  const txt=inp.value.trim();
+  if(!txt)return;
+  inp.value='';
+  addPlayerMsg(txt);
+  G.dlgTexts.push(txt);
+  G.dlgTurn++;
+  const d=DATA[G.candidate];
+  if(G.dlgTurn>=3){
+    document.getElementById('dlg-input-wrap').style.display='none';
+    setTimeout(()=>{
+      addCharMsg(d.fin);
+      setTimeout(startAnalysis,1200);
+    },500);
+  } else {
+    document.getElementById('turn-ctr').textContent=`대화 ${G.dlgTurn+1} / 3`;
+    setTimeout(()=>addCharMsg(d.rep[G.dlgTurn-1]),600);
+  }
+}
+document.getElementById('dlg-inp').addEventListener('keydown',e=>{if(e.key==='Enter')submitDlg();});
+
+// Keyword detection
+function detectPreset(texts){
+  const s=texts.join(' ');
+  const cw=['전투','강함','수호','전쟁','싸움','용감','강인','무력','힘'];
+  const pw=['백성','민심','사람','국민','민중','평화','화합','백성들'];
+  let cs=0,ps=0;
+  cw.forEach(w=>{if(s.includes(w))cs++;});
+  pw.forEach(w=>{if(s.includes(w))ps++;});
+  if(cs>ps&&cs>0)return'combat';
+  if(ps>cs&&ps>0)return'people';
+  return'def';
+}
+
+function startAnalysis(){
+  go('s-analysis');
+  document.getElementById('an-loading').style.display='block';
+  document.getElementById('an-result').style.display='none';
+  let dc=0;
+  const iv=setInterval(()=>{dc=(dc+1)%4;document.getElementById('an-dots').textContent='.'.repeat(dc+1);},450);
+  setTimeout(()=>{
+    clearInterval(iv);
+    const p=detectPreset(G.dlgTexts);
+    G.preset=p;
+    const d=DATA[G.candidate];
+    const pr=d.presets[p];
+    G.title=pr.title;
+    Object.entries(pr.b).forEach(([k,v])=>{G.stats[k]=Math.max(0,Math.min(100,(G.stats[k]||0)+v));});
+    G.initStats={...G.stats};
+    document.getElementById('an-loading').style.display='none';
+    document.getElementById('an-result').style.display='block';
+    document.getElementById('an-title-txt').textContent=pr.title;
+    const sorted=Object.entries(pr.b).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,3);
+    document.getElementById('an-stat-dirs').innerHTML=sorted.map(([k,v])=>`
+      <div class="sd-item">
+        <div class="sd-stat">${k}</div>
+        <div class="sd-val ${v>0?'up':'dn'}">${v>0?'▲':'▼'} ${Math.abs(v)}</div>
+      </div>`).join('');
+  },2600);
+}
+
+// Hub
+function goHub(){
+  renderHub();
+  go('s-hub');
+}
+
+function renderHub(){
+  const d=DATA[G.candidate];
+  document.getElementById('hub-week').textContent=`${G.week}주차`;
+  document.getElementById('hub-char-img').src=A+d.sd;
+  document.getElementById('hub-cand-label').textContent=`[ ${d.name} — ${G.title} ]`;
+  document.getElementById('kb-ord').style.width=G.kingdom.ord+'%';
+  document.getElementById('kb-eco').style.width=G.kingdom.eco+'%';
+  document.getElementById('kb-dip').style.width=G.kingdom.dip+'%';
+  document.getElementById('hub-stats-grid').innerHTML=STAT_KEYS.map(k=>`
+    <div class="si"><div class="si-lbl">${k}</div><div class="si-bar"><div class="si-fill" style="width:${G.stats[k]}%"></div></div><div class="si-val">${G.stats[k]}</div></div>`).join('');
+}
+
+// Rival popup
+function showRivalPop(){
+  document.getElementById('rv-t0').textContent=DATA[G.rival1].name;
+  document.getElementById('rv-t1').textContent=DATA[G.rival2].name;
+  G.rvTab=0;
+  document.getElementById('rv-t0').classList.add('on');
+  document.getElementById('rv-t1').classList.remove('on');
+  renderRv(0);
+  document.getElementById('rival-popup').classList.add('show');
+}
+
+function closeRivalPop(){document.getElementById('rival-popup').classList.remove('show');}
+
+function switchRv(i){
+  G.rvTab=i;
+  document.getElementById('rv-t0').classList.toggle('on',i===0);
+  document.getElementById('rv-t1').classList.toggle('on',i===1);
+  renderRv(i);
+}
+
+function renderRv(i){
+  const key=i===0?G.rival1:G.rival2;
+  const mgr=i===0?'세피아 집정관':'루안 집정관';
+  const d=DATA[key];
+  const rs=i===0?G.rv1Stats:G.rv2Stats;
+  document.getElementById('rv-body').innerHTML=`
+    <img class="rv-card-img" src="${A+d.card}" alt="${d.name}">
+    <div class="rv-cname">${d.name}</div>
+    <div class="rv-manager">담당: ${mgr}</div>
+    <div class="rv-stats">${STAT_KEYS.map(k=>`
+      <div class="rv-row"><div class="rv-lbl">${k}</div><div class="rv-bar"><div class="rv-fill" style="width:${rs[k]}%"></div></div><div class="rv-val">${rs[k]}</div></div>`).join('')}
+    </div>`;
+}
+
+// Schedule
+function openSchedule(){
+  const activeKey=ACTIVE_KEY[G.candidate];
+  document.getElementById('sch-grid').innerHTML=SCHEDS.map(s=>{
+    const isA=s.key===activeKey;
+    return`<div class="sch-card ${isA?'can':'locked'}" onclick="${isA?'pickSched(this)':'showLockSched()'}">
+      ${!isA?`<div class="sch-lock"><img src="${A}ui_lock.png" alt="잠금"></div>`:''}
+      <div class="sch-name">${s.name}</div><div class="sch-effect">${s.eff}</div></div>`;
+  }).join('');
+  document.getElementById('sch-confirm').style.display='none';
+  go('s-schedule');
+}
+
+function pickSched(el){
+  document.querySelectorAll('.sch-card.can').forEach(c=>c.classList.remove('picked'));
+  el.classList.add('picked');
+  document.getElementById('sch-confirm').style.display='block';
+}
+
+function confirmSched(){
+  const d=DATA[G.candidate];
+  Object.entries(d.schedEff).forEach(([k,v])=>{G.stats[k]=Math.max(0,Math.min(100,G.stats[k]+v));});
+  // Rival gains
+  STAT_KEYS.forEach(k=>{
+    G.rv1Stats[k]=Math.min(100,G.rv1Stats[k]+Math.floor(Math.random()*3+2));
+    G.rv2Stats[k]=Math.min(100,G.rv2Stats[k]+Math.floor(Math.random()*3+2));
+  });
+  document.getElementById('sr-bg').style.backgroundImage=`url('${A+d.sched}')`;
+  document.getElementById('sr-type').textContent=`[ ${d.schedType} — ${d.schedPlace} ]`;
+  document.getElementById('sr-text').textContent=d.name+d.schedDesc;
+  document.getElementById('sr-chg').innerHTML=Object.entries(d.schedEff).map(([k,v])=>
+    `<span class="sc-item ${v>0?'sc-up':'sc-dn'}">${k} ${v>0?'▲':'▼'}${Math.abs(v)}</span>`).join('');
+  go('s-sched-result');
+}
+
+function afterSched(){showEvent();}
+
+// Events
+function showEvent(){
+  const d=DATA[G.candidate];
+  const ev=d.events[G.week];
+  const bg=ev.type==='rival'?(ev.rival==='sepia'?'event_sepia.png':'event_ruan.png'):'bg_office.png';
+  document.getElementById('ev-bg').style.backgroundImage=`url('${A+bg}')`;
+  document.getElementById('ev-badge').textContent=ev.type==='rival'?'라이벌 집정관의 견제':'이벤트 발생';
+  document.getElementById('ev-badge').style.color=ev.type==='rival'?'var(--red)':'var(--gold)';
+  document.getElementById('ev-title').textContent=ev.title;
+  document.getElementById('ev-desc').textContent=ev.desc;
+  document.getElementById('ev-result').style.display='none';
+  document.getElementById('ev-choices').style.display='flex';
+  document.getElementById('ev-choices').innerHTML=ev.choices.map((c,i)=>
+    `<button class="ev-btn" onclick="chooseEv(${i})">${c.text}</button>`).join('');
+  go('s-event');
+}
+
+function chooseEv(i){
+  const ev=DATA[G.candidate].events[G.week];
+  const ch=ev.choices[i];
+  Object.entries(ch.eff).forEach(([k,v])=>{G.stats[k]=Math.max(0,Math.min(100,G.stats[k]+v));});
+  document.getElementById('ev-choices').style.display='none';
+  document.getElementById('ev-rtext').textContent=ch.res;
+  document.getElementById('ev-result').style.display='block';
+}
+
+function afterEvent(){
+  if(G.week>=3){showResult();}
+  else{
+    G.week++;
+    renderHub();
+    go('s-hub');
+  }
+}
+
+// Care dialogue
+const CARE_RESPONSES={
+  rieona:{
+    encourage:['...집정관님의 말씀이 힘이 됩니다. 더욱 열심히 하겠습니다.','감사합니다. 포기하지 않겠습니다.','집정관님이 계시기에 두렵지 않습니다.'],
+    praise:['과찬이십니다... 하지만 기쁩니다.','그렇게 말씀해 주시니 더욱 노력해야겠습니다.','부끄럽습니다만... 감사히 받겠습니다.'],
+    scold:['...죄송합니다. 더 분발하겠습니다.','말씀 새겨듣겠습니다. 부족했습니다.','...네. 집정관님의 말씀이 옳습니다.'],
+    def:['...그렇군요. 잘 알겠습니다.','네, 집정관님.','명심하겠습니다.']
+  },
+  verona:{
+    encourage:['정말요? 감사합니다, 집정관님! 더 힘낼게요!','으쌰! 집정관님 믿고 열심히 할게요!','그 말씀 듣고 힘이 났어요. 고맙습니다.'],
+    praise:['어, 어... 그런가요? 쑥스럽네요!','에이, 아직 멀었어요. 그래도 기뻐요!','집정관님한테 그런 말 들으니까 진짜 기뻐요.'],
+    scold:['...맞아요. 제가 부족했어요. 다음엔 꼭 잘할게요.','알겠어요. 더 열심히 하겠습니다.','죄송해요, 집정관님. 반성할게요.'],
+    def:['네, 집정관님.','알겠어요!','명심할게요.']
+  },
+  erion:{
+    encourage:['...감사합니다. 그 말씀이 길을 밝혀주는 것 같습니다.','...네. 포기하지 않겠습니다.','집정관님의 말씀을 나침반 삼아 나아가겠습니다.'],
+    praise:['...제가 그런 말을 들을 자격이 있는지 모르겠습니다.','감사합니다. 더 나은 사람이 되겠습니다.','...그렇게 보아주시다니. 감사합니다.'],
+    scold:['...옳은 말씀입니다. 반성하겠습니다.','네. 명심하겠습니다.','...알겠습니다. 더 신중히 행동하겠습니다.'],
+    def:['...네.','알겠습니다.','명심하겠습니다.']
+  }
+};
+
+function detectCareKeyword(txt){
+  const ec=['힘내','할수있','잘될','응원','파이팅','믿어','기대','잘하','괜찮','걱정마'];
+  const pc=['잘했','훌륭','대단','멋있','최고','훌륭','칭찬','좋아','뛰어','대견'];
+  const sc=['왜','못했','부족','실망','분발','제대로','똑바로','엄하','꾸짖','반성'];
+  let es=0,ps=0,ss=0;
+  ec.forEach(w=>{if(txt.includes(w))es++;});
+  pc.forEach(w=>{if(txt.includes(w))ps++;});
+  sc.forEach(w=>{if(txt.includes(w))ss++;});
+  if(es>=ps&&es>=ss&&es>0)return'encourage';
+  if(ps>=es&&ps>=ss&&ps>0)return'praise';
+  if(ss>0)return'scold';
+  return'def';
+}
+
+function openCare(){
+  const d=DATA[G.candidate];
+  const bg=document.getElementById('care-char-bg');
+  bg.style.backgroundImage=`url('${A+d.full}')`;
+  bg.style.backgroundSize='contain';
+  bg.style.backgroundPosition='center top';
+  bg.style.backgroundRepeat='no-repeat';
+  bg.style.backgroundColor='var(--deep)';
+  document.getElementById('care-name').textContent=`[ ${d.name} ]`;
+  document.getElementById('care-hist').innerHTML=`<div class="dlg-msg"><div class="sp">[ ${d.name} ]</div><div>집정관님, 오셨군요. 무슨 말씀이 있으십니까?</div></div>`;
+  document.getElementById('care-inp').value='';
+  go('s-care');
+}
+
+function submitCare(){
+  const inp=document.getElementById('care-inp');
+  const txt=inp.value.trim();
+  if(!txt)return;
+  inp.value='';
+  const h=document.getElementById('care-hist');
+  h.innerHTML+=`<div class="dlg-msg dlg-player">${txt}</div>`;
+  h.scrollTop=9999;
+  const kw=detectCareKeyword(txt);
+  const d=DATA[G.candidate];
+  const responses=CARE_RESPONSES[G.candidate][kw];
+  const reply=responses[Math.floor(Math.random()*responses.length)];
+  // stat effects
+  if(kw==='encourage'){G.stats['멘탈']=Math.min(100,G.stats['멘탈']+3);}
+  else if(kw==='praise'){G.stats['외모']=Math.min(100,G.stats['외모']+2);}
+  else if(kw==='scold'){G.stats['멘탈']=Math.max(0,G.stats['멘탈']-3);}
+  setTimeout(()=>{
+    h.innerHTML+=`<div class="dlg-msg"><div class="sp">[ ${d.name} ]</div><div>${reply}</div></div>`;
+    h.scrollTop=9999;
+  },500);
+}
+document.getElementById('care-inp').addEventListener('keydown',e=>{if(e.key==='Enter')submitCare();});
+
+// Result
+function showResult(){
+  const d=DATA[G.candidate];
+  document.getElementById('res-char').style.backgroundImage=`url('${A+d.full}')`;
+  document.getElementById('res-title').textContent=G.title;
+  const rivals=['rieona','verona','erion'].filter(c=>c!==G.candidate);
+  const rank=Math.random()>0.5?2:3;
+  let list=[];
+  if(rank===2)list=[rivals[0],G.candidate,rivals[1]];
+  else list=[rivals[0],rivals[1],G.candidate];
+  document.getElementById('rank-list').innerHTML=list.map((k,i)=>{
+    const isYou=k===G.candidate;
+    return`<div class="rank-item"><div class="rank-no">${i+1}</div><div class="rank-name ${isYou?'you':''}">${DATA[k].name}${isYou?` (${G.playerName} 집정관)`:''}</div></div>`;
+  }).join('');
+  go('s-result');
+  setTimeout(drawRadar,650);
+}
+
+function drawRadar(){
+  const cv=document.getElementById('radar');
+  const c=cv.getContext('2d');
+  const cx=100,cy=100,r=78,n=6;
+  c.clearRect(0,0,200,200);
+  // Grid rings
+  for(let ring=1;ring<=4;ring++){
+    c.beginPath();
+    for(let i=0;i<n;i++){
+      const a=(i/n)*Math.PI*2-Math.PI/2;
+      const rr=r*(ring/4);
+      i===0?c.moveTo(cx+rr*Math.cos(a),cy+rr*Math.sin(a)):c.lineTo(cx+rr*Math.cos(a),cy+rr*Math.sin(a));
+    }
+    c.closePath();c.strokeStyle='rgba(201,168,76,0.25)';c.lineWidth=1;c.stroke();
+  }
+  // Axes
+  for(let i=0;i<n;i++){
+    const a=(i/n)*Math.PI*2-Math.PI/2;
+    c.beginPath();c.moveTo(cx,cy);c.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));
+    c.strokeStyle='rgba(201,168,76,0.25)';c.lineWidth=1;c.stroke();
+  }
+  // Initial stats (before analysis)
+  c.beginPath();
+  STAT_KEYS.forEach((k,i)=>{
+    const a=(i/n)*Math.PI*2-Math.PI/2,v=(G.initStats[k]||0)/100;
+    i===0?c.moveTo(cx+r*v*Math.cos(a),cy+r*v*Math.sin(a)):c.lineTo(cx+r*v*Math.cos(a),cy+r*v*Math.sin(a));
+  });
+  c.closePath();c.fillStyle='rgba(46,107,79,0.15)';c.fill();
+  c.strokeStyle='rgba(46,107,79,0.5)';c.lineWidth=1;c.stroke();
+  // Current stats
+  c.beginPath();
+  STAT_KEYS.forEach((k,i)=>{
+    const a=(i/n)*Math.PI*2-Math.PI/2,v=G.stats[k]/100;
+    i===0?c.moveTo(cx+r*v*Math.cos(a),cy+r*v*Math.sin(a)):c.lineTo(cx+r*v*Math.cos(a),cy+r*v*Math.sin(a));
+  });
+  c.closePath();c.fillStyle='rgba(201,168,76,0.2)';c.fill();
+  c.strokeStyle='rgba(255,215,0,0.85)';c.lineWidth=2;c.stroke();
+  // Labels
+  c.fillStyle='#F5ECD7';c.font='10px Nanum Myeongjo, serif';c.textAlign='center';c.textBaseline='middle';
+  STAT_KEYS.forEach((k,i)=>{
+    const a=(i/n)*Math.PI*2-Math.PI/2;
+    c.fillText(k,cx+(r+14)*Math.cos(a),cy+(r+14)*Math.sin(a));
+  });
+}
+</script>
+</body>
+</html>
